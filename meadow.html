@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Meadow — a garden for your tasks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFF6E4;
+    --bg-deep: #FFECC2;
+    --card: #FFFDF6;
+    --ink: #3B2E22;
+    --ink-soft: #8A7A64;
+    --ink-faint: #C2B49B;
+    --line: #3B2E22;
+    --grass: #6FBF73;
+    --grass-dark: #4C9950;
+    --grass-soft: #DFF3DE;
+    --sky: #6EC3E0;
+    --sky-soft: #DBF1F8;
+    --sun: #FFC93C;
+    --sun-soft: #FFF0C2;
+    --coral: #FF7F6B;
+    --coral-soft: #FFE1DA;
+    --plum: #B180C9;
+    --plum-soft: #F0E1F5;
+    --clay: #D98A4F;
+    --clay-soft: #FBE6D2;
+    --danger: #E1573F;
+    --shadow: rgba(59, 46, 34, 0.16);
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #201A2E;
+      --bg-deep: #171223;
+      --card: #2A2338;
+      --ink: #F1E9F7;
+      --ink-soft: #B2A3C4;
+      --ink-faint: #6D6083;
+      --line: #F1E9F7;
+      --grass: #7ED483;
+      --grass-dark: #5CB863;
+      --grass-soft: #253626;
+      --sky: #7FD3EF;
+      --sky-soft: #1E3540;
+      --sun: #FFD666;
+      --sun-soft: #3B3320;
+      --coral: #FF8F7D;
+      --coral-soft: #3E2622;
+      --plum: #C79BDC;
+      --plum-soft: #33253C;
+      --clay: #E4A06B;
+      --clay-soft: #3A2A1C;
+      --danger: #FF8266;
+      --shadow: rgba(0, 0, 0, 0.4);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #201A2E; --bg-deep: #171223; --card: #2A2338; --ink: #F1E9F7;
+    --ink-soft: #B2A3C4; --ink-faint: #6D6083; --line: #F1E9F7;
+    --grass: #7ED483; --grass-dark: #5CB863; --grass-soft: #253626;
+    --sky: #7FD3EF; --sky-soft: #1E3540; --sun: #FFD666; --sun-soft: #3B3320;
+    --coral: #FF8F7D; --coral-soft: #3E2622; --plum: #C79BDC; --plum-soft: #33253C;
+    --clay: #E4A06B; --clay-soft: #3A2A1C; --danger: #FF8266; --shadow: rgba(0,0,0,0.4);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(circle at 15% 0%, var(--bg-deep), transparent 55%),
+      var(--bg);
+    color: var(--ink);
+    font-family: 'Nunito', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100%;
+    overflow-x: hidden;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 28px 20px 72px; position: relative; }
+
+  h1, .plant-btn, .sort-select, .filters button { font-family: 'Baloo 2', 'Nunito', sans-serif; }
+
+  /* ---------- reusable cartoon primitives ---------- */
+  .toon {
+    border: 2.5px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 3px 4px 0 var(--shadow);
+  }
+  button { font-family: inherit; cursor: pointer; }
+  button:active { transform: translateY(1px); }
+  @media (prefers-reduced-motion: no-preference) {
+    .bouncy:hover { animation: bounceHover 0.5s ease; }
+  }
+  @keyframes bounceHover {
+    0%, 100% { transform: translateY(0) rotate(0); }
+    30% { transform: translateY(-3px) rotate(-2deg); }
+    60% { transform: translateY(0) rotate(2deg); }
+  }
+  @keyframes popIn {
+    0% { transform: scale(0.6); opacity: 0; }
+    60% { transform: scale(1.06); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+  @keyframes wiggleOut {
+    0% { transform: scale(1) rotate(0); opacity: 1; }
+    30% { transform: scale(1.05) rotate(-4deg); }
+    100% { transform: scale(0.4) rotate(10deg); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+  }
+
+  /* ---------- header + mascot ---------- */
+  header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
+  .title-block h1 {
+    font-weight: 800; font-size: clamp(28px, 7vw, 38px); margin: 0 0 2px; color: var(--ink);
+  }
+  .title-block p { margin: 0; font-size: 13px; color: var(--ink-soft); font-weight: 600; }
+  .theme-toggle {
+    width: 40px; height: 40px; border-radius: 50%; background: var(--card);
+    color: var(--ink-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .theme-toggle svg { width: 18px; height: 18px; }
+
+  .mascot-zone { display: flex; flex-direction: column; align-items: center; margin: 4px 0 6px; }
+  .mascot-wrap { width: 148px; height: 148px; position: relative; }
+  #mascot { width: 100%; height: 100%; overflow: visible; }
+  @media (prefers-reduced-motion: no-preference) {
+    .mascot-sway { animation: sway 3.2s ease-in-out infinite; transform-origin: 100px 190px; }
+  }
+  @keyframes sway {
+    0%, 100% { transform: rotate(-2deg); }
+    50% { transform: rotate(2deg); }
+  }
+  .eye-blink { animation: blink 0.22s ease; }
+  @keyframes blink { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.08); } }
+
+  .mascot-line {
+    display: none;
+  }
+  #mascot[data-state="sleepy"] .st-sleepy,
+  #mascot[data-state="neutral"] .st-neutral,
+  #mascot[data-state="happy"] .st-happy,
+  #mascot[data-state="celebrating"] .st-happy,
+  #mascot[data-state="celebrating"] .st-celebrating {
+    display: block;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .sparkle { animation: twinkle 1.4s ease-in-out infinite; transform-origin: center; }
+    .sparkle:nth-child(2) { animation-delay: 0.3s; }
+    .sparkle:nth-child(3) { animation-delay: 0.6s; }
+  }
+  @keyframes twinkle {
+    0%, 100% { transform: scale(0.7) rotate(0deg); opacity: 0.5; }
+    50% { transform: scale(1.15) rotate(20deg); opacity: 1; }
+  }
+  .zzz { font-family: 'Baloo 2', sans-serif; font-weight: 700; fill: var(--ink-faint); }
+  @media (prefers-reduced-motion: no-preference) {
+    .zzz-anim { animation: floatUp 2.6s ease-in-out infinite; }
+    .zzz-anim.z2 { animation-delay: 0.5s; }
+    .zzz-anim.z3 { animation-delay: 1s; }
+  }
+  @keyframes floatUp {
+    0% { transform: translateY(0); opacity: 0; }
+    20% { opacity: 1; }
+    100% { transform: translateY(-14px); opacity: 0; }
+  }
+
+  .mascot-caption {
+    margin-top: 6px; font-size: 13.5px; font-weight: 700; color: var(--ink-soft);
+    text-align: center; min-height: 18px;
+  }
+
+  .lifetime-stats { display: flex; gap: 14px; margin: 6px 0 20px; justify-content: center; flex-wrap: wrap; }
+  .stat-pill {
+    display: flex; align-items: center; gap: 6px; background: var(--card);
+    padding: 6px 12px 6px 8px; border-radius: 999px; font-size: 12.5px; font-weight: 700; color: var(--ink-soft);
+  }
+  .stat-pill svg { width: 18px; height: 18px; }
+
+  /* ---------- progress bar (garden path) ---------- */
+  .path-bar {
+    height: 16px; border-radius: 999px; background: var(--card); position: relative; overflow: visible; margin-bottom: 22px;
+  }
+  .path-fill {
+    height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--grass), var(--sun)); width: 0%;
+    transition: width 0.6s cubic-bezier(.34,1.56,.64,1);
+  }
+  .path-marker {
+    position: absolute; top: 50%; width: 26px; height: 26px; transform: translate(-50%, -50%); left: 0%;
+    transition: left 0.6s cubic-bezier(.34,1.56,.64,1);
+  }
+
+  /* ---------- planter (add form) ---------- */
+  .planter { background: var(--card); padding: 16px; margin-bottom: 20px; }
+  form.add-main { display: flex; gap: 8px; margin-bottom: 12px; }
+  input[type="text"], input[type="date"], select {
+    font-family: 'Nunito', sans-serif; color: var(--ink); background: var(--bg);
+    border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 14.5px; font-weight: 600;
+  }
+  input::placeholder { color: var(--ink-faint); font-weight: 600; }
+  input:focus, select:focus, button:focus-visible {
+    outline: none; box-shadow: 0 0 0 3px var(--sun-soft); border-color: var(--sun);
+  }
+  #taskInput { flex: 1; min-width: 0; }
+  .plant-btn {
+    background: var(--grass); color: var(--ink); border: 2.5px solid var(--line); border-radius: 12px;
+    padding: 0 20px; font-size: 15px; font-weight: 700; box-shadow: 2px 3px 0 var(--shadow);
+  }
+  .plant-btn:active { box-shadow: none; transform: translate(2px, 3px); }
+
+  .planter-options { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .priority-picker { display: flex; gap: 4px; background: var(--bg); border: 2px solid var(--line); border-radius: 12px; padding: 3px; }
+  .priority-picker button {
+    display: flex; align-items: center; gap: 5px; border: none; background: none; border-radius: 9px;
+    padding: 6px 9px; font-size: 12.5px; font-weight: 700; color: var(--ink-soft);
+  }
+  .priority-picker button svg { width: 16px; height: 16px; }
+  .priority-picker button.active { background: var(--card); box-shadow: 0 0 0 2px var(--line) inset; color: var(--ink); }
+  #dueInput { font-size: 13px; padding: 8px 10px; }
+  #categoryInput { font-size: 13px; padding: 8px 10px; width: 116px; }
+
+  /* ---------- toolbar ---------- */
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .filters { display: flex; gap: 4px; }
+  .filters button {
+    background: var(--card); border: 2px solid transparent; border-radius: 10px;
+    padding: 6px 12px; font-size: 13px; font-weight: 700; color: var(--ink-soft);
+  }
+  .filters button.active { border-color: var(--line); color: var(--ink); }
+  .sort-select { font-size: 12.5px; padding: 7px 10px; font-weight: 700; }
+  .search-box { margin-left: auto; position: relative; }
+  .search-box input { font-size: 13px; padding: 7px 10px 7px 32px; width: 130px; border-radius: 10px; }
+  .search-box svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--ink-faint); pointer-events: none; }
+
+  .category-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .chip {
+    font-size: 12px; padding: 5px 12px; border-radius: 999px; border: 2px solid transparent;
+    background: var(--chip-soft); color: var(--chip-color); font-weight: 700;
+  }
+  .chip.active { border-color: var(--chip-color); }
+
+  /* ---------- list ---------- */
+  ul.list { list-style: none; margin: 0; padding: 0; }
+  li.item {
+    display: flex; align-items: flex-start; gap: 10px; padding: 13px 12px; margin-bottom: 10px;
+    background: var(--card); border: 2.5px solid var(--line); border-radius: 16px;
+    box-shadow: 3px 3px 0 var(--shadow); animation: popIn 0.3s cubic-bezier(.34,1.56,.64,1); cursor: grab;
+  }
+  li.item.dragging { opacity: 0.4; }
+  li.item.drop-target { border-color: var(--sky); box-shadow: 3px 3px 0 var(--sky); }
+  li.item.removing { animation: wiggleOut 0.28s ease forwards; }
+  li.item.just-done { animation: popIn 0.3s cubic-bezier(.34,1.56,.64,1), bloomPulse 0.8s ease; }
+  @keyframes bloomPulse { 0% { background: var(--grass-soft); } 100% { background: var(--card); } }
+
+  .check {
+    flex-shrink: 0; width: 26px; height: 26px; margin-top: 1px; border: 2.5px solid var(--line);
+    border-radius: 50%; background: var(--card); position: relative;
+  }
+  .check svg { position: absolute; inset: 0; margin: auto; opacity: 0; transform: scale(0.3) rotate(-15deg); transition: opacity 0.18s ease, transform 0.18s cubic-bezier(.34,1.56,.64,1); }
+  .item.done .check { background: var(--grass); }
+  .item.done .check svg { opacity: 1; transform: scale(1) rotate(0); }
+
+  .item-body { flex: 1; min-width: 0; }
+  .item .text {
+    font-size: 15px; font-weight: 700; line-height: 1.4; word-break: break-word; background: none; border: none;
+    font-family: inherit; color: var(--ink); width: 100%; padding: 0;
+  }
+  .item .text[contenteditable="true"] { outline: none; border-bottom: 2px dashed var(--ink-faint); }
+  .item.done .text { color: var(--ink-faint); text-decoration: line-through; text-decoration-color: var(--ink-faint); }
+
+  .meta-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .meta-pill { font-size: 11px; padding: 3px 9px; border-radius: 999px; font-weight: 800; }
+  .meta-pill.due { background: var(--sun-soft); color: var(--clay); }
+  .meta-pill.due.overdue { background: var(--coral-soft); color: var(--danger); }
+  .meta-pill.cat { background: var(--chip-soft); color: var(--chip-color); }
+
+  .priority-flag { flex-shrink: 0; width: 20px; height: 20px; margin-top: 3px; }
+
+  .remove {
+    flex-shrink: 0; background: none; border: none; color: var(--ink-faint); font-size: 20px; line-height: 1;
+    padding: 2px 4px; opacity: 0; transition: opacity 0.12s ease;
+  }
+  li.item:hover .remove, li.item:focus-within .remove { opacity: 1; }
+  .remove:hover { color: var(--danger); }
+
+  .empty { padding: 30px 16px; text-align: center; border: 2.5px dashed var(--ink-faint); border-radius: 16px; }
+  .empty p { font-family: 'Baloo 2', sans-serif; font-weight: 700; font-size: 16px; color: var(--ink-soft); margin: 8px 0 0; }
+
+  footer { margin-top: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .footer-left { display: flex; gap: 10px; align-items: center; }
+  .icon-btn {
+    background: var(--card); border: 2px solid var(--line); border-radius: 10px; padding: 6px 10px;
+    font-size: 12px; font-weight: 700; color: var(--ink-soft); display: flex; align-items: center; gap: 5px;
+  }
+  .icon-btn svg { width: 14px; height: 14px; }
+  .clear-done { background: none; border: none; color: var(--ink-faint); font-size: 12.5px; font-weight: 700; padding: 4px 0; }
+  .clear-done:hover { color: var(--danger); }
+  .remaining { font-size: 12.5px; color: var(--ink-faint); font-weight: 700; }
+
+  /* ---------- toast ---------- */
+  .toast {
+    position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 12px);
+    background: var(--ink); color: var(--card); padding: 10px 16px; border-radius: 999px; font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; gap: 14px; opacity: 0; pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease; max-width: calc(100% - 40px); z-index: 10;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  .toast button { background: none; border: none; color: var(--sun); font-weight: 800; font-size: 13px; padding: 0; }
+
+  /* ---------- confetti ---------- */
+  #confettiLayer { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 20; }
+  .confetti-piece { position: absolute; top: -20px; border-radius: 3px; animation: confettiFall linear forwards; }
+  @keyframes confettiFall {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(540deg); opacity: 0.9; }
+  }
+
+  #fileImport { display: none; }
+</style>
+</head>
+<body>
+<div id="confettiLayer"></div>
+
+<div class="wrap">
+  <header>
+    <div class="title-block">
+      <h1>Meadow</h1>
+      <p id="dateLabel"></p>
+    </div>
+    <button class="theme-toggle toon bouncy" id="themeToggle" aria-label="Toggle theme"></button>
+  </header>
+
+  <div class="mascot-zone">
+    <div class="mascot-wrap">
+      <svg id="mascot" viewBox="0 0 200 220" data-state="neutral">
+        <ellipse cx="100" cy="200" rx="52" ry="9" fill="var(--shadow)"></ellipse>
+        <g class="mascot-sway">
+          <path d="M60 165 L70 205 L130 205 L140 165 Z" fill="var(--clay)" stroke="var(--line)" stroke-width="4" stroke-linejoin="round"></path>
+          <ellipse cx="100" cy="165" rx="42" ry="8" fill="var(--clay-soft)" stroke="var(--line)" stroke-width="4"></ellipse>
+
+          <path d="M68 110 Q30 95 40 60 Q55 75 68 100 Z" fill="var(--grass)" stroke="var(--line)" stroke-width="4" stroke-linejoin="round"></path>
+          <path d="M132 110 Q170 95 160 60 Q145 75 132 100 Z" fill="var(--grass)" stroke="var(--line)" stroke-width="4" stroke-linejoin="round"></path>
+
+          <ellipse cx="45" cy="140" rx="10" ry="14" fill="var(--grass-dark)" stroke="var(--line)" stroke-width="3.5"></ellipse>
+          <ellipse cx="155" cy="140" rx="10" ry="14" fill="var(--grass-dark)" stroke="var(--line)" stroke-width="3.5"></ellipse>
+
+          <path d="M100 45 C45 45 40 100 45 130 C50 165 70 172 100 172 C130 172 150 165 155 130 C160 100 155 45 100 45 Z"
+                fill="var(--grass)" stroke="var(--line)" stroke-width="5" stroke-linejoin="round"></path>
+
+          <g id="eyes">
+            <g class="mascot-line st-neutral">
+              <circle id="eyeL" class="eye" cx="80" cy="105" r="5.5" fill="var(--line)"></circle>
+              <circle id="eyeR" class="eye" cx="120" cy="105" r="5.5" fill="var(--line)"></circle>
+            </g>
+            <g class="mascot-line st-sleepy">
+              <path d="M72 106 Q80 111 88 106" stroke="var(--line)" stroke-width="3.5" fill="none" stroke-linecap="round"></path>
+              <path d="M112 106 Q120 111 128 106" stroke="var(--line)" stroke-width="3.5" fill="none" stroke-linecap="round"></path>
+            </g>
+            <g class="mascot-line st-happy">
+              <path d="M72 109 L80 98 L88 109" stroke="var(--line)" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+              <path d="M112 109 L120 98 L128 109" stroke="var(--line)" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+            </g>
+          </g>
+
+          <g class="mascot-line st-neutral">
+            <path d="M90 128 Q100 133 110 128" stroke="var(--line)" stroke-width="3.5" fill="none" stroke-linecap="round"></path>
+          </g>
+          <g class="mascot-line st-sleepy">
+            <ellipse cx="100" cy="129" rx="6" ry="4" fill="var(--line)"></ellipse>
+          </g>
+          <g class="mascot-line st-happy">
+            <path d="M82 122 Q100 145 118 122" stroke="var(--line)" stroke-width="4" fill="none" stroke-linecap="round"></path>
+            <ellipse cx="65" cy="122" rx="8" ry="5" fill="var(--coral-soft)"></ellipse>
+            <ellipse cx="135" cy="122" rx="8" ry="5" fill="var(--coral-soft)"></ellipse>
+          </g>
+
+          <g class="mascot-line st-sleepy">
+            <text x="128" y="55" font-size="16" class="zzz zzz-anim z1">z</text>
+            <text x="140" y="42" font-size="13" class="zzz zzz-anim z2">z</text>
+            <text x="150" y="32" font-size="10" class="zzz zzz-anim z3">z</text>
+          </g>
+
+          <g class="mascot-line st-celebrating">
+            <path class="sparkle" d="M35 60 l4 10 l10 4 l-10 4 l-4 10 l-4 -10 l-10 -4 l10 -4 Z" fill="var(--sun)"></path>
+            <path class="sparkle" d="M165 75 l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 l8 -3 Z" fill="var(--sky)"></path>
+            <path class="sparkle" d="M100 20 l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 l8 -3 Z" fill="var(--coral)"></path>
+          </g>
+        </g>
+      </svg>
+    </div>
+    <div class="mascot-caption" id="mascotCaption">Loading your garden&hellip;</div>
+  </div>
+
+  <div class="lifetime-stats">
+    <span class="stat-pill">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="14" r="4"/><path d="M12 10V4M9 6l3-3 3 3"/></svg>
+      <span id="seedsStat">0 seeds planted</span>
+    </span>
+    <span class="stat-pill">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 21c4-3 6-6 6-10a6 6 0 10-12 0c0 4 2 7 6 10z"/></svg>
+      <span id="bloomsStat">0 ever bloomed</span>
+    </span>
+  </div>
+
+  <div class="path-bar toon">
+    <div class="path-fill" id="pathFill"></div>
+    <div class="path-marker" id="pathMarker">
+      <svg viewBox="0 0 26 26"><circle cx="13" cy="13" r="11" fill="var(--card)" stroke="var(--line)" stroke-width="2.5"></circle><path d="M13 8v10M9 12l4-4 4 4" stroke="var(--grass-dark)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    </div>
+  </div>
+
+  <div class="planter toon">
+    <form class="add-main" id="addForm">
+      <input type="text" id="taskInput" placeholder="Plant a new task" autocomplete="off" maxlength="200">
+      <button type="submit" class="plant-btn bouncy">Plant</button>
+    </form>
+    <div class="planter-options">
+      <div class="priority-picker" id="priorityPicker" role="radiogroup" aria-label="Priority">
+        <button type="button" data-p="seed" title="Low priority — seed">
+          <svg viewBox="0 0 24 24" fill="var(--clay)" stroke="var(--line)" stroke-width="1.4"><ellipse cx="12" cy="12" rx="6" ry="9"/></svg> Seed
+        </button>
+        <button type="button" data-p="sprout" class="active" title="Medium priority — sprout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--grass-dark)" stroke-width="2.2" stroke-linecap="round"><path d="M12 20V10"/><path d="M12 12c0-4 -4-5 -7-4 1 4 3 6 7 5Z" fill="var(--grass)"/><path d="M12 9c0-4 4-5 7-4 -1 4 -3 6 -7 5Z" fill="var(--grass)"/></svg> Sprout
+        </button>
+        <button type="button" data-p="bloom" title="High priority — bloom">
+          <svg viewBox="0 0 24 24" fill="var(--coral)" stroke="var(--line)" stroke-width="1"><circle cx="12" cy="5.5" r="3.2"/><circle cx="12" cy="18.5" r="3.2"/><circle cx="5.5" cy="12" r="3.2"/><circle cx="18.5" cy="12" r="3.2"/><circle cx="12" cy="12" r="3" fill="var(--sun)"/></svg> Bloom
+        </button>
+      </div>
+      <input type="date" id="dueInput" aria-label="Due date">
+      <input type="text" id="categoryInput" placeholder="Bed (category)" maxlength="24" aria-label="Category">
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="filters" id="filters">
+      <button data-filter="all" class="active">All</button>
+      <button data-filter="active">Growing</button>
+      <button data-filter="done">Bloomed</button>
+    </div>
+    <select class="sort-select toon" id="sortSelect" aria-label="Sort order">
+      <option value="manual">Manual order</option>
+      <option value="priority">By priority</option>
+      <option value="due">By due date</option>
+      <option value="newest">Newest first</option>
+    </select>
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" id="searchInput" placeholder="Search" class="toon">
+    </div>
+  </div>
+  <div class="category-chips" id="categoryChips"></div>
+
+  <ul class="list" id="list"></ul>
+
+  <footer>
+    <div class="footer-left">
+      <button class="icon-btn bouncy" id="exportBtn" title="Export tasks as a file" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg> Export
+      </button>
+      <button class="icon-btn bouncy" id="importBtn" title="Import tasks from a file">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 21h14"/></svg> Import
+      </button>
+      <input type="file" id="fileImport" accept="application/json">
+    </div>
+    <span class="remaining" id="remaining"></span>
+  </footer>
+  <div style="text-align:right; margin-top:6px;">
+    <button class="clear-done" id="clearDone">Clear bloomed</button>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <span id="toastMsg"></span>
+  <button id="toastUndo">Undo</button>
+</div>
+
+<script>
+(function () {
+  var STORAGE_KEY = 'meadow-tasks-v2';
+  var THEME_KEY = 'meadow-theme-v1';
+  var STATS_KEY = 'meadow-stats-v1';
+  var SORT_KEY = 'meadow-sort-v1';
+  var PALETTE = ['grass', 'coral', 'sun', 'clay', 'sky', 'plum'];
+  var PRIORITY_RANK = { bloom: 0, sprout: 1, seed: 2 };
+  var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var tasks = [];
+  var stats = { seeds: 0, blooms: 0 };
+  var filter = 'all';
+  var sortMode = 'manual';
+  var search = '';
+  var activeCategory = null;
+  var newPriority = 'sprout';
+  var dragId = null;
+  var lastDeleted = null;
+  var toastTimer = null;
+  var wasFullyBloomed = false;
+  var downloadsApi = null;
+
+  function loadAll() {
+    try { var raw = localStorage.getItem(STORAGE_KEY); tasks = raw ? JSON.parse(raw) : []; } catch (e) { tasks = []; }
+    try { var s = localStorage.getItem(STATS_KEY); stats = s ? JSON.parse(s) : { seeds: 0, blooms: 0 }; } catch (e) {}
+    try { var sm = localStorage.getItem(SORT_KEY); if (sm) sortMode = sm; } catch (e) {}
+    // migrate old priority naming if present
+    tasks.forEach(function (t) {
+      if (t.priority === 'low') t.priority = 'seed';
+      if (t.priority === 'med') t.priority = 'sprout';
+      if (t.priority === 'high') t.priority = 'bloom';
+    });
+  }
+  function saveTasks() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); } catch (e) {} }
+  function saveStats() { try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch (e) {} }
+  function saveSort() { try { localStorage.setItem(SORT_KEY, sortMode); } catch (e) {} }
+
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function hashColor(str) {
+    var h = 0;
+    for (var i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) >>> 0; }
+    return PALETTE[h % PALETTE.length];
+  }
+
+  var listEl = document.getElementById('list');
+  var mascotEl = document.getElementById('mascot');
+  var captionEl = document.getElementById('mascotCaption');
+  var seedsStatEl = document.getElementById('seedsStat');
+  var bloomsStatEl = document.getElementById('bloomsStat');
+  var pathFill = document.getElementById('pathFill');
+  var pathMarker = document.getElementById('pathMarker');
+  var form = document.getElementById('addForm');
+  var input = document.getElementById('taskInput');
+  var dueInput = document.getElementById('dueInput');
+  var categoryInput = document.getElementById('categoryInput');
+  var priorityPicker = document.getElementById('priorityPicker');
+  var filtersEl = document.getElementById('filters');
+  var sortSelect = document.getElementById('sortSelect');
+  var searchInput = document.getElementById('searchInput');
+  var categoryChipsEl = document.getElementById('categoryChips');
+  var clearDoneBtn = document.getElementById('clearDone');
+  var themeToggle = document.getElementById('themeToggle');
+  var toast = document.getElementById('toast');
+  var toastMsg = document.getElementById('toastMsg');
+  var toastUndo = document.getElementById('toastUndo');
+  var exportBtn = document.getElementById('exportBtn');
+  var importBtn = document.getElementById('importBtn');
+  var fileImport = document.getElementById('fileImport');
+  var confettiLayer = document.getElementById('confettiLayer');
+  var remainingEl = document.getElementById('remaining');
+
+  function checkIcon() {
+    return '<svg width="13" height="11" viewBox="0 0 11 9" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+      '<path d="M1 4.5L4 7.5L10 1.5" stroke="var(--grass-dark)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+  function priorityIcon(p) {
+    if (p === 'seed') return '<svg viewBox="0 0 24 24" fill="var(--clay)" stroke="var(--line)" stroke-width="1.4"><ellipse cx="12" cy="12" rx="6" ry="9"/></svg>';
+    if (p === 'bloom') return '<svg viewBox="0 0 24 24" fill="var(--coral)" stroke="var(--line)" stroke-width="1"><circle cx="12" cy="5.5" r="3.2"/><circle cx="12" cy="18.5" r="3.2"/><circle cx="5.5" cy="12" r="3.2"/><circle cx="18.5" cy="12" r="3.2"/><circle cx="12" cy="12" r="3" fill="var(--sun)"/></svg>';
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="var(--grass-dark)" stroke-width="2.2" stroke-linecap="round"><path d="M12 20V10"/><path d="M12 12c0-4 -4-5 -7-4 1 4 3 6 7 5Z" fill="var(--grass)"/><path d="M12 9c0-4 4-5 7-4 -1 4 -3 6 -7 5Z" fill="var(--grass)"/></svg>';
+  }
+  function sunIcon() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'; }
+  function moonIcon() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg>'; }
+
+  function fmtDue(dateStr) {
+    var due = new Date(dateStr + 'T00:00:00');
+    var today = new Date(); today.setHours(0,0,0,0);
+    var diffDays = Math.round((due - today) / 86400000);
+    if (diffDays === 0) return { label: 'Today', overdue: false };
+    if (diffDays === 1) return { label: 'Tomorrow', overdue: false };
+    if (diffDays === -1) return { label: 'Yesterday', overdue: true };
+    if (diffDays < 0) return { label: Math.abs(diffDays) + 'd overdue', overdue: true };
+    if (diffDays <= 6) return { label: 'In ' + diffDays + 'd', overdue: false };
+    return { label: due.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }), overdue: false };
+  }
+
+  function allCategories() {
+    var set = {};
+    tasks.forEach(function (t) { if (t.category) set[t.category] = true; });
+    return Object.keys(set).sort();
+  }
+  function renderChips() {
+    var cats = allCategories();
+    categoryChipsEl.innerHTML = '';
+    categoryChipsEl.style.display = cats.length ? 'flex' : 'none';
+    cats.forEach(function (cat) {
+      var color = hashColor(cat);
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip' + (activeCategory === cat ? ' active' : '');
+      chip.style.setProperty('--chip-color', 'var(--' + color + ')');
+      chip.style.setProperty('--chip-soft', 'var(--' + color + '-soft)');
+      chip.textContent = cat;
+      chip.addEventListener('click', function () { activeCategory = activeCategory === cat ? null : cat; render(); });
+      categoryChipsEl.appendChild(chip);
+    });
+  }
+
+  function sortedTasks(list) {
+    var arr = list.slice();
+    if (sortMode === 'priority') {
+      arr.sort(function (a, b) { return PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]; });
+    } else if (sortMode === 'due') {
+      arr.sort(function (a, b) {
+        if (!a.due && !b.due) return 0;
+        if (!a.due) return 1;
+        if (!b.due) return -1;
+        return a.due.localeCompare(b.due);
+      });
+    } else if (sortMode === 'newest') {
+      arr.sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+    }
+    return arr;
+  }
+
+  function updateMascot(doneCount, total) {
+    var state = 'sleepy';
+    var caption = 'Nothing planted yet — start below.';
+    if (total > 0) {
+      if (doneCount === total) { state = 'celebrating'; caption = 'Your garden is in full bloom today!'; }
+      else if (doneCount >= total / 2) { state = 'happy'; caption = 'Looking lovely — keep it growing!'; }
+      else { state = 'neutral'; caption = 'A few things are sprouting today.'; }
+    }
+    mascotEl.setAttribute('data-state', state);
+    captionEl.textContent = caption;
+
+    if (state === 'celebrating' && !wasFullyBloomed) { burstConfetti(); }
+    wasFullyBloomed = (state === 'celebrating');
+  }
+
+  function burstConfetti() {
+    if (reducedMotion) return;
+    var colors = ['var(--grass)', 'var(--coral)', 'var(--sun)', 'var(--sky)', 'var(--plum)'];
+    for (var i = 0; i < 28; i++) {
+      var piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      var size = 6 + Math.random() * 6;
+      piece.style.width = size + 'px';
+      piece.style.height = (size * 0.4) + 'px';
+      piece.style.left = (Math.random() * 100) + 'vw';
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.animationDuration = (1.8 + Math.random() * 1.4) + 's';
+      piece.style.animationDelay = (Math.random() * 0.3) + 's';
+      confettiLayer.appendChild(piece);
+      (function (el) { setTimeout(function () { el.remove(); }, 3600); })(piece);
+    }
+  }
+
+  function render() {
+    renderChips();
+
+    var visible = tasks.filter(function (t) {
+      if (filter === 'active' && t.done) return false;
+      if (filter === 'done' && !t.done) return false;
+      if (activeCategory && t.category !== activeCategory) return false;
+      if (search && t.text.toLowerCase().indexOf(search.toLowerCase()) === -1) return false;
+      return true;
+    });
+    visible = sortedTasks(visible);
+
+    listEl.innerHTML = '';
+
+    if (visible.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.innerHTML = '<p>' + (tasks.length === 0
+        ? 'An empty plot. Plant your first task above.'
+        : (search ? 'Nothing matches that search.' : (filter === 'done' ? 'Nothing has bloomed yet.' : 'Nothing growing here.'))) + '</p>';
+      listEl.appendChild(empty);
+    } else {
+      visible.forEach(function (t) {
+        var li = document.createElement('li');
+        li.className = 'item' + (t.done ? ' done' : '');
+        li.draggable = sortMode === 'manual';
+        li.dataset.id = t.id;
+        if (sortMode !== 'manual') li.style.cursor = 'default';
+
+        li.addEventListener('dragstart', function () { dragId = t.id; li.classList.add('dragging'); });
+        li.addEventListener('dragend', function () { li.classList.remove('dragging'); });
+        li.addEventListener('dragover', function (e) { if (sortMode === 'manual') { e.preventDefault(); li.classList.add('drop-target'); } });
+        li.addEventListener('dragleave', function () { li.classList.remove('drop-target'); });
+        li.addEventListener('drop', function (e) {
+          e.preventDefault();
+          li.classList.remove('drop-target');
+          if (sortMode !== 'manual' || dragId === null || dragId === t.id) return;
+          var fromIdx = tasks.findIndex(function (x) { return x.id === dragId; });
+          var toIdx = tasks.findIndex(function (x) { return x.id === t.id; });
+          if (fromIdx === -1 || toIdx === -1) return;
+          var moved = tasks.splice(fromIdx, 1)[0];
+          tasks.splice(toIdx, 0, moved);
+          dragId = null;
+          saveTasks();
+          render();
+        });
+
+        var flag = document.createElement('div');
+        flag.className = 'priority-flag';
+        flag.innerHTML = priorityIcon(t.priority);
+        flag.title = t.priority;
+
+        var check = document.createElement('button');
+        check.className = 'check';
+        check.setAttribute('aria-label', t.done ? 'Mark as not done' : 'Mark as bloomed');
+        check.innerHTML = checkIcon();
+        check.addEventListener('click', function () {
+          t.done = !t.done;
+          if (t.done) stats.blooms += 1;
+          saveStats();
+          saveTasks();
+          render();
+          if (t.done) {
+            var newLi = listEl.querySelector('[data-id="' + t.id + '"]');
+            if (newLi) newLi.classList.add('just-done');
+          }
+        });
+
+        var body = document.createElement('div');
+        body.className = 'item-body';
+
+        var text = document.createElement('div');
+        text.className = 'text';
+        text.textContent = t.text;
+        text.tabIndex = 0;
+        text.addEventListener('dblclick', function () { startEdit(text, t); });
+        text.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' && text.getAttribute('contenteditable') !== 'true') { e.preventDefault(); startEdit(text, t); }
+        });
+
+        var metaRow = document.createElement('div');
+        metaRow.className = 'meta-row';
+        if (t.due) {
+          var info = fmtDue(t.due);
+          var duePill = document.createElement('span');
+          duePill.className = 'meta-pill due' + (info.overdue && !t.done ? ' overdue' : '');
+          duePill.textContent = info.label;
+          metaRow.appendChild(duePill);
+        }
+        if (t.category) {
+          var color = hashColor(t.category);
+          var catPill = document.createElement('span');
+          catPill.className = 'meta-pill cat';
+          catPill.style.setProperty('--chip-color', 'var(--' + color + ')');
+          catPill.style.setProperty('--chip-soft', 'var(--' + color + '-soft)');
+          catPill.textContent = t.category;
+          metaRow.appendChild(catPill);
+        }
+
+        body.appendChild(text);
+        if (metaRow.children.length) body.appendChild(metaRow);
+
+        var remove = document.createElement('button');
+        remove.className = 'remove';
+        remove.setAttribute('aria-label', 'Delete task');
+        remove.textContent = '\u00d7';
+        remove.addEventListener('click', function () {
+          li.classList.add('removing');
+          setTimeout(function () { deleteTask(t.id); }, reducedMotion ? 0 : 240);
+        });
+
+        li.appendChild(flag);
+        li.appendChild(check);
+        li.appendChild(body);
+        li.appendChild(remove);
+        listEl.appendChild(li);
+      });
+    }
+
+    var doneCount = tasks.filter(function (t) { return t.done; }).length;
+    var openCount = tasks.length - doneCount;
+    var pct = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
+
+    pathFill.style.width = pct + '%';
+    pathMarker.style.left = pct + '%';
+    updateMascot(doneCount, tasks.length);
+
+    seedsStatEl.textContent = stats.seeds + (stats.seeds === 1 ? ' seed planted' : ' seeds planted');
+    bloomsStatEl.textContent = stats.blooms + ' ever bloomed';
+
+    remainingEl.textContent = tasks.length === 0 ? '' : (openCount === 0 ? 'All bloomed' : (openCount + (openCount === 1 ? ' task left' : ' tasks left')));
+    clearDoneBtn.style.visibility = doneCount > 0 ? 'visible' : 'hidden';
+    exportBtn.style.display = (downloadsApi && tasks.length > 0) ? 'flex' : 'none';
+  }
+
+  function startEdit(textEl, t) {
+    textEl.setAttribute('contenteditable', 'true');
+    textEl.focus();
+    var range = document.createRange();
+    range.selectNodeContents(textEl);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    function finish(save) {
+      textEl.removeAttribute('contenteditable');
+      var val = textEl.textContent.trim();
+      if (save && val) { t.text = val; saveTasks(); }
+      textEl.removeEventListener('blur', onBlur);
+      textEl.removeEventListener('keydown', onKey);
+      render();
+    }
+    function onBlur() { finish(true); }
+    function onKey(e) {
+      if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+      if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    }
+    textEl.addEventListener('blur', onBlur);
+    textEl.addEventListener('keydown', onKey);
+  }
+
+  function deleteTask(id) {
+    var idx = tasks.findIndex(function (t) { return t.id === id; });
+    if (idx === -1) return;
+    lastDeleted = { task: tasks[idx], index: idx };
+    tasks.splice(idx, 1);
+    saveTasks();
+    render();
+    showToast('Task removed', true);
+  }
+
+  function showToast(msg, withUndo) {
+    toastMsg.textContent = msg;
+    toastUndo.style.display = withUndo ? 'inline' : 'none';
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 5000);
+  }
+
+  toastUndo.addEventListener('click', function () {
+    if (!lastDeleted) return;
+    tasks.splice(lastDeleted.index, 0, lastDeleted.task);
+    lastDeleted = null;
+    saveTasks();
+    render();
+    toast.classList.remove('show');
+  });
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var val = input.value.trim();
+    if (!val) return;
+    tasks.unshift({
+      id: uid(), text: val, done: false, priority: newPriority,
+      due: dueInput.value || null, category: categoryInput.value.trim() || null,
+      createdAt: Date.now()
+    });
+    stats.seeds += 1;
+    saveStats();
+    input.value = ''; dueInput.value = ''; categoryInput.value = '';
+    saveTasks();
+    render();
+    input.focus();
+  });
+
+  priorityPicker.addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-p]');
+    if (!btn) return;
+    newPriority = btn.getAttribute('data-p');
+    Array.prototype.forEach.call(priorityPicker.querySelectorAll('button'), function (b) { b.classList.toggle('active', b === btn); });
+  });
+
+  filtersEl.addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-filter]');
+    if (!btn) return;
+    filter = btn.getAttribute('data-filter');
+    Array.prototype.forEach.call(filtersEl.querySelectorAll('button'), function (b) { b.classList.toggle('active', b === btn); });
+    render();
+  });
+
+  sortSelect.addEventListener('change', function () {
+    sortMode = sortSelect.value;
+    saveSort();
+    render();
+  });
+
+  searchInput.addEventListener('input', function () { search = searchInput.value; render(); });
+
+  clearDoneBtn.addEventListener('click', function () {
+    tasks = tasks.filter(function (t) { return !t.done; });
+    saveTasks();
+    render();
+  });
+
+  importBtn.addEventListener('click', function () { fileImport.click(); });
+  fileImport.addEventListener('change', function () {
+    var file = fileImport.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var incoming = JSON.parse(reader.result);
+        if (!Array.isArray(incoming)) throw new Error('bad format');
+        incoming.forEach(function (t) {
+          if (!t.id) t.id = uid();
+          if (!t.priority) t.priority = 'sprout';
+        });
+        tasks = incoming.concat(tasks);
+        saveTasks();
+        render();
+        showToast('Imported ' + incoming.length + ' task' + (incoming.length === 1 ? '' : 's'), false);
+      } catch (err) {
+        showToast('That file doesn\u2019t look right', false);
+      }
+      fileImport.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  exportBtn.addEventListener('click', function () {
+    if (!downloadsApi) return;
+    downloadsApi.save({ filename: 'meadow-tasks.json', data: JSON.stringify(tasks, null, 2) })
+      .then(function () { showToast('Saved!', false); })
+      .catch(function () {});
+  });
+
+  function currentTheme() {
+    var stored = null;
+    try { stored = localStorage.getItem(THEME_KEY); } catch (e) {}
+    if (stored) return stored;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function applyTheme(mode) {
+    document.documentElement.setAttribute('data-theme', mode);
+    themeToggle.innerHTML = mode === 'dark' ? sunIcon() : moonIcon();
+    try { localStorage.setItem(THEME_KEY, mode); } catch (e) {}
+  }
+  themeToggle.addEventListener('click', function () { applyTheme(currentTheme() === 'dark' ? 'light' : 'dark'); });
+  applyTheme(currentTheme());
+
+  // idle blink
+  if (!reducedMotion) {
+    setInterval(function () {
+      ['eyeL', 'eyeR'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.classList.add('eye-blink');
+        setTimeout(function () { el.classList.remove('eye-blink'); }, 220);
+      });
+    }, 4200);
+  }
+
+  var dateLabel = document.getElementById('dateLabel');
+  dateLabel.textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+
+  sortSelect.value = sortMode;
+
+  loadAll();
+  render();
+
+  if (window.claude && typeof window.claude.use === 'function') {
+    window.claude.use('downloads').then(function (api) {
+      downloadsApi = api;
+      render();
+    }).catch(function () {});
+  }
+})();
+</script>
+</body>
+</html>
